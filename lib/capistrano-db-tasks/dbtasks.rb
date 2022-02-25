@@ -35,11 +35,11 @@ namespace :db do
 
   namespace :local do
     desc 'Synchronize your local database using remote database data'
-    task :sync do
+    task :sync, [:subdomains] => :environment do |t, args|
       on roles(:db) do
         puts "Local database: #{Database::Local.new(self).database}"
         if fetch(:skip_data_sync_confirm) || Util.prompt('Are you sure you want to erase your local database with server database')
-          Database.remote_to_local(self)
+          Database.remote_to_local(self, args[:subdomains])
         end
       end
     end
@@ -67,7 +67,9 @@ namespace :db do
   end
 
   desc 'Synchronize your local database using remote database data'
-  task :pull => "db:local:sync"
+  task :pull, [:subdomains] => :environment do |t, args|
+    Rake.application.invoke_task("db:local:sync[#{args[:subdomains]}]")
+  end
 
   desc 'Synchronize your remote database using local database data'
   task :push => "db:remote:sync"

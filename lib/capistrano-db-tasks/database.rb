@@ -117,7 +117,12 @@ module Database
     end
 
     def dump
-      @cap.execute "cd #{@cap.current_path} && #{dump_cmd} | #{compressor.compress('-', db_dump_file_path)}"
+      if @schemas
+        schem_string = @schemas.join(' ')
+        @cap.execute "cd #{@cap.current_path} && #{dump_cmd} --schema #{schem_string} | #{compressor.compress('-', db_dump_file_path)}"
+      else
+        @cap.execute "cd #{@cap.current_path} && #{dump_cmd} | #{compressor.compress('-', db_dump_file_path)}"
+      end
       self
     end
 
@@ -215,7 +220,8 @@ module Database
         (remote_db.nil? || (remote_db && remote_db.postgresql?))
     end
 
-    def remote_to_local(instance)
+    def remote_to_local(instance, subdomains=[])
+      @schemas = subdomains.empty? ? nil : (['recovr', 'public'] + subdomains)
       local_db  = Database::Local.new(instance)
       remote_db = Database::Remote.new(instance)
 
