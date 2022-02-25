@@ -117,6 +117,13 @@ module Database
     end
 
     def dump
+      puts "DEBUGGING - schemas"
+      puts @schemas
+      puts "------------"
+      puts @schemas.inspect
+      puts "END DEBUGGING - schemas"
+      raise 'ok'
+
       if @schemas
         schem_string = @schemas.join(' ')
         @cap.execute "cd #{@cap.current_path} && #{dump_cmd} --schema #{schem_string} | #{compressor.compress('-', db_dump_file_path)}"
@@ -221,7 +228,14 @@ module Database
     end
 
     def remote_to_local(instance)
+      puts "DEBUGGING"
+      puts ENV
+      puts "------------"
+      puts ENV['TENANTS']
+      puts "END DEBUGGING"
       @schemas = ENV['TENANTS'].empty? ? nil : (['recovr', 'public'] + ENV['TENANTS'])
+      raise 'ok'
+
       local_db  = Database::Local.new(instance)
       remote_db = Database::Remote.new(instance)
 
