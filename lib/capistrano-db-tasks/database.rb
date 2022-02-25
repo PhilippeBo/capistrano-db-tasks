@@ -220,8 +220,8 @@ module Database
         (remote_db.nil? || (remote_db && remote_db.postgresql?))
     end
 
-    def remote_to_local(instance, subdomains=[])
-      @schemas = subdomains.empty? ? nil : (['recovr', 'public'] + subdomains)
+    def remote_to_local(instance)
+      @schemas = ENV['TENANTS'].empty? ? nil : (['recovr', 'public'] + ENV['TENANTS'])
       local_db  = Database::Local.new(instance)
       remote_db = Database::Remote.new(instance)
 
