@@ -66,6 +66,7 @@ module Database
       if mysql?
         "mysqldump #{credentials} #{database} #{dump_cmd_opts}"
       elsif postgresql?
+        @cap.capture(:rails, "runner \"puts DUMP CMD #{ENV['TENANTS']}\"", '2>/dev/null')
         "#{pgpass} pg_dump #{credentials} #{database} #{dump_cmd_opts}"
       end
     end
@@ -117,11 +118,10 @@ module Database
     end
 
     def dump
-      @cap.capture(:rails, "runner \"puts 'DEBUGGING SCHEMA #{@schemas}' \"", '2>/dev/null')
-      @cap.capture(:rails, "runner \"puts 'DEBUGGING SCHEMA INSPECT #{@schemas.inspect}' \"", '2>/dev/null')
+      @cap.capture(:rails, "runner \"puts DUMP DATABASE\"", '2>/dev/null')
 
-      if @schemas
-        schem_string = @schemas.join(' ')
+      if ENV['TENANTS'].present?
+        schem_string = (['recovr', 'public'] + ENV['TENANTS']).join(' ')
         @cap.execute "cd #{@cap.current_path} && #{dump_cmd} --schema #{schem_string} | #{compressor.compress('-', db_dump_file_path)}"
       else
         @cap.execute "cd #{@cap.current_path} && #{dump_cmd} | #{compressor.compress('-', db_dump_file_path)}"
@@ -224,11 +224,6 @@ module Database
     end
 
     def remote_to_local(instance)
-      @cap.capture(:rails, "runner \"puts 'DEBUGGING ENV #{ENV}' \"", '2>/dev/null')
-      @cap.capture(:rails, "runner \"puts 'DEBUGGING ENV TENANTS #{ENV['TENANTS']}' \"", '2>/dev/null')
-
-      @schemas = ENV['TENANTS'].empty? ? nil : (['recovr', 'public'] + ENV['TENANTS'])
-
       local_db  = Database::Local.new(instance)
       remote_db = Database::Remote.new(instance)
 
