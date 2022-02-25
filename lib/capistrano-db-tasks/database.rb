@@ -50,10 +50,10 @@ module Database
 
     def compressor
       @compressor ||= begin
-        compressor_klass = @cap.fetch(:compressor).to_s.split('_').collect(&:capitalize).join
-        klass = Object.module_eval("::Compressors::#{compressor_klass}", __FILE__, __LINE__)
-        klass
-      end
+                        compressor_klass = @cap.fetch(:compressor).to_s.split('_').collect(&:capitalize).join
+                        klass = Object.module_eval("::Compressors::#{compressor_klass}", __FILE__, __LINE__)
+                        klass
+                      end
     end
 
     private
@@ -66,8 +66,8 @@ module Database
       if mysql?
         "mysqldump #{credentials} #{database} #{dump_cmd_opts}"
       elsif postgresql?
-        @cap.capture(:rails, "runner \"puts DUMP CMD #{ENV['TENANTS']}\"", '2>/dev/null')
-        "#{pgpass} pg_dump #{credentials} #{database} #{dump_cmd_opts}"
+        schem_string = (['recovr', 'public'] + ENV['TENANTS']).join(' ')
+        "#{pgpass} pg_dump #{credentials} #{database} #{dump_cmd_opts} --schema #{schem_string}"
       end
     end
 
@@ -84,7 +84,8 @@ module Database
       if mysql?
         "--lock-tables=false #{dump_cmd_ignore_tables_opts} #{dump_cmd_ignore_data_tables_opts}"
       elsif postgresql?
-        "--no-acl --no-owner #{dump_cmd_ignore_tables_opts} #{dump_cmd_ignore_data_tables_opts}"
+        schem_string = (['recovr', 'public'] + ENV['TENANTS']).join(' ')
+        "--no-acl --no-owner #{dump_cmd_ignore_tables_opts} #{dump_cmd_ignore_data_tables_opts} --schema #{schem_string}"
       end
     end
 
@@ -110,7 +111,6 @@ module Database
       @cap.within @cap.current_path do
         @cap.with rails_env: @cap.fetch(:rails_env) do
           dirty_config_content = @cap.capture(:rails, "runner \"puts '#{DBCONFIG_BEGIN_FLAG}' + Rails.application.config.database_configuration[Rails.env].to_yaml + '#{DBCONFIG_END_FLAG}'\"", '2>/dev/null')
-          @cap.capture(:rails, "runner \"puts DUMP CMD #{ENV['TENANTS']}\"", '2>/dev/null')
           # Remove all warnings, errors and artefacts produced by bunlder, rails and other useful tools
           config_content = dirty_config_content.match(/#{DBCONFIG_BEGIN_FLAG}(.*?)#{DBCONFIG_END_FLAG}/m)[1]
           @config = YAML.load(config_content).each_with_object({}) { |(k, v), h| h[k.to_s] = v }
@@ -119,14 +119,8 @@ module Database
     end
 
     def dump
-      @cap.capture(:rails, "runner \"puts DUMP DATABASE\"", '2>/dev/null')
-
-      if ENV['TENANTS'].present?
-        schem_string = (['recovr', 'public'] + ENV['TENANTS']).join(' ')
-        @cap.execute "cd #{@cap.current_path} && #{dump_cmd} --schema #{schem_string} | #{compressor.compress('-', db_dump_file_path)}"
-      else
-        @cap.execute "cd #{@cap.current_path} && #{dump_cmd} | #{compressor.compress('-', db_dump_file_path)}"
-      end
+      schem_string = (['recovr', 'public'] + ENV['TENANTS']).join(' ')
+      @cap.execute "cd #{@cap.current_path} && #{dump_cmd} --schema #{schem_string} | #{compressor.compress('-', db_dump_file_path)}"
       self
     end
 
