@@ -117,12 +117,8 @@ module Database
     end
 
     def dump
-      puts "DEBUGGING - schemas"
-      puts @schemas
-      puts "------------"
-      puts @schemas.inspect
-      puts "END DEBUGGING - schemas"
-      raise 'ok'
+      @cap.capture(:rails, "runner \"puts 'DEBUGGING SCHEMA #{@schemas}' \"", '2>/dev/null')
+      @cap.capture(:rails, "runner \"puts 'DEBUGGING SCHEMA INSPECT #{@schemas.inspect}' \"", '2>/dev/null')
 
       if @schemas
         schem_string = @schemas.join(' ')
@@ -228,13 +224,10 @@ module Database
     end
 
     def remote_to_local(instance)
-      puts "DEBUGGING"
-      puts ENV
-      puts "------------"
-      puts ENV['TENANTS']
-      puts "END DEBUGGING"
+      @cap.capture(:rails, "runner \"puts 'DEBUGGING ENV #{ENV}' \"", '2>/dev/null')
+      @cap.capture(:rails, "runner \"puts 'DEBUGGING ENV TENANTS #{ENV['TENANTS']}' \"", '2>/dev/null')
+
       @schemas = ENV['TENANTS'].empty? ? nil : (['recovr', 'public'] + ENV['TENANTS'])
-      raise 'ok'
 
       local_db  = Database::Local.new(instance)
       remote_db = Database::Remote.new(instance)
