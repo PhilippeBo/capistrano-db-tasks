@@ -118,7 +118,8 @@ module Database
 
     def schema_opt
       return nil if ENV['TENANTS'].nil?
-      '--schema recovr public ' + ENV['TENANTS'].join(' ')
+      tenants_arr = ENV['TENANTS'].split(',')
+      "--schema='recovr|public|#{tenants_arr.join('|')}'"
     end
 
     def dump
