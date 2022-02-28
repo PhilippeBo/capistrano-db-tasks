@@ -66,8 +66,7 @@ module Database
       if mysql?
         "mysqldump #{credentials} #{database} #{dump_cmd_opts}"
       elsif postgresql?
-        schem_string = (['recovr', 'public'] + ENV['TENANTS']).join(' ')
-        "#{pgpass} pg_dump #{credentials} #{database} #{dump_cmd_opts} --schema #{schem_string}"
+        "#{pgpass} pg_dump #{credentials} #{database} #{dump_cmd_opts}"
       end
     end
 
@@ -84,8 +83,7 @@ module Database
       if mysql?
         "--lock-tables=false #{dump_cmd_ignore_tables_opts} #{dump_cmd_ignore_data_tables_opts}"
       elsif postgresql?
-        schem_string = (['recovr', 'public'] + ENV['TENANTS']).join(' ')
-        "--no-acl --no-owner #{dump_cmd_ignore_tables_opts} #{dump_cmd_ignore_data_tables_opts} --schema #{schem_string}"
+        "--no-acl --no-owner #{dump_cmd_ignore_tables_opts} #{dump_cmd_ignore_data_tables_opts}"
       end
     end
 
@@ -118,9 +116,13 @@ module Database
       end
     end
 
+    def schema_opt
+      return nil if ENV['TENANTS'].nil?
+      '--schema recovr public ' + ENV['TENANTS'].join(' ')
+    end
+
     def dump
-      schem_string = (['recovr', 'public'] + ENV['TENANTS']).join(' ')
-      @cap.execute "cd #{@cap.current_path} && #{dump_cmd} --schema #{schem_string} | #{compressor.compress('-', db_dump_file_path)}"
+      @cap.execute "cd #{@cap.current_path} && #{dump_cmd} #{schema_opt} | #{compressor.compress('-', db_dump_file_path)}"
       self
     end
 
